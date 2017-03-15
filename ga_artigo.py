@@ -60,27 +60,33 @@ def fitness(chro):
 
 def greed_rule_1():
 	c = sorted(tasks, key=lambda x: x.tesi, reverse=False)
-	return c
+	labels = [x.label for x in c]
+	return labels
 
 def greed_rule_2():
 	c = sorted(tasks, key=lambda x: x.ri, reverse=True)
-	return c
+	labels = [x.label for x in c]
+	return labels
 
 def greed_rule_3():
 	c = sorted(tasks, key=lambda x: (x.ri / x.ti), reverse=True)
-	return c
+	labels = [x.label for x in c]
+	return labels
 
 def greed_rule_4():
 	c = sorted(tasks, key=lambda x: x.ti, reverse=False)
-	return c
+	labels = [x.label for x in c]
+	return labels
 
 def greed_rule_5():
 	c = sorted(tasks, key=lambda x: x.tvi, reverse=False)
-	return c
+	labels = [x.label for x in c]
+	return labels
 
 def greed_rule_6():
 	c = sorted(tasks, key=lambda x: (x.tvi - x.ti), reverse=False)
-	return c
+	labels = [x.label for x in c]
+	return labels
 
 def gera_populacao_fs():
 	pop = []
@@ -317,8 +323,8 @@ def main(argv):
 	greed_rule_1()
 	# inicializando populacao aleatoriamente
 	# population = gera_populacao_aleatoria()
-	# population = gera_populacao_hrhs()
-	population = gera_populacao_fs()
+	population = gera_populacao_hrhs()
+	# population = gera_populacao_fs()
 
 	# inicio do genetico
 	for k in xrange(GEN):
