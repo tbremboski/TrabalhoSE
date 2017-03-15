@@ -56,41 +56,33 @@ def fitness(chro):
 
 	return result
 
-def main(argv):
-	# inicializando valores de cada tarefa
-	v_tesi = np.random.uniform(0, T, N_TASKS)
-	v_tesi.sort()
-	v_ti = np.random.normal(6, 1, N_TASKS)
-	v_ti = np.absolute(v_ti)
-	v_tlsi = np.random.normal(5, 1, N_TASKS)
-	v_tlsi = np.absolute(v_tlsi)
-	v_ri = np.random.uniform(0, 1, N_TASKS)
-
-	# criando lista de tarefas
-	for i in xrange(N_TASKS):
-		tasks.append(Task(i, v_ti[i], v_tesi[i], v_tlsi[i], v_ri[i]))
-
-	# inicializando populacao aleatoriamente
-	population = []
+def gera_populacao_aleatoria():
+	pop = []
 	for i in xrange(M):
-		population.append(np.random.permutation(N_TASKS))
+		pop.append(np.random.permutation(N_TASKS))
 
-	# inicio do genetico
-	for k in xrange(GEN):
-		# selecao de individuos
-		pop_sel = []
-		for i in xrange(M):
-			a = np.random.random_integers(0, M-1)
-			b = np.random.random_integers(0, M-1)
+	return pop
 
-			if fitness(population[a]) >= fitness(population[b]):
-				pop_sel.append(population[a])
-			else:
-				pop_sel.append(population[b])
+def selecao_aleatoria(population):
+	pop_sel = []
+	for i in xrange(M):
+		a = np.random.random_integers(0, M-1)
+		b = np.random.random_integers(0, M-1)
 
-		# crossover
-		pop_cross = []
-		for i in xrange(0, int(M*PC) - 1, 2):
+		if fitness(population[a]) >= fitness(population[b]):
+			pop_sel.append(population[a])
+		else:
+			pop_sel.append(population[b])
+
+	return pop_sel
+
+def crossover_same_sit(population):
+	pop_cross = []
+	for i in xrange(0, M, 2):
+		r = np.random.random_sample()
+		if i+1 >= M:
+			pop_cross.append(population[i])
+		elif r < PC:
 			sons = []
 			for ii in xrange(PC_LOOP):
 				son = np.zeros(N_TASKS, dtype=np.int)
@@ -104,17 +96,17 @@ def main(argv):
 					b = tmp
 
 				for j in xrange(N_TASKS):
-					if pop_sel[i][j] == pop_sel[i+1][j]:
-						son[j] = pop_sel[i][j]
+					if population[i][j] == population[i+1][j]:
+						son[j] = population[i][j]
 					elif j >= a and j <= b:
-						son[j] = pop_sel[i][j]
+						son[j] = population[i][j]
 					else:
 						pass
 
 				tmp = []
 				for j in xrange(N_TASKS):
-					if pop_sel[i+1][j] not in son:
-						tmp.append(pop_sel[i+1][j])
+					if population[i+1][j] not in son:
+						tmp.append(population[i+1][j])
 
 				c = 0
 				for j in xrange(N_TASKS):
@@ -134,35 +126,70 @@ def main(argv):
 
 			pop_cross.append(sons[t[-1][1]])
 			pop_cross.append(sons[t[-2][1]])
+		else:
+			pop_cross.append(population[i])
+			pop_cross.append(population[i+1])
 
-		l = len(pop_cross)
-		for i in xrange(M - 1, l - 1, -1):
-			pop_cross.append(pop_sel[i])
+	return pop_cross
+
+def mutacao(population):
+	pop = population
+	for i in xrange(M):
+		r = np.random.random_sample()
+		if r < PM:
+			print 'Mutation!!!!'
+			a = np.random.random_integers(0, N_TASKS-1)
+			b = np.random.random_integers(0, N_TASKS-1)
+
+			tmp = pop[i][a]
+			pop[i][a] = pop[i][b]
+			pop[i][b] = tmp
+
+	return pop
+
+def print_parcial(population, k):
+	f = []
+	for i in xrange(M):
+		f.append(fitness(population[i]))
+
+	f = np.array(f)
+	f.sort()
+
+	print 'End of generation ' + str(k) + '. Best fitness: ' + str(f[-1])
+
+def main(argv):
+	# inicializando valores de cada tarefa
+	v_tesi = np.random.uniform(0, T, N_TASKS)
+	v_tesi.sort()
+	v_ti = np.random.normal(6, 1, N_TASKS)
+	v_ti = np.absolute(v_ti)
+	v_tlsi = np.random.normal(5, 1, N_TASKS)
+	v_tlsi = np.absolute(v_tlsi)
+	v_ri = np.random.uniform(0, 1, N_TASKS)
+
+	# criando lista de tarefas
+	for i in xrange(N_TASKS):
+		tasks.append(Task(i, v_ti[i], v_tesi[i], v_tlsi[i], v_ri[i]))
+
+	# inicializando populacao aleatoriamente
+	population = gera_populacao_aleatoria()	
+
+	# inicio do genetico
+	for k in xrange(GEN):
+		# selecao de individuos
+		pop_sel = selecao_aleatoria(population)
+
+		# crossover
+		pop_cross = crossover_same_sit(pop_sel)
 
 		# mutacao
-		for i in xrange(M):
-			r = np.random.random_sample()
-			if r <= PM:
-				print 'Mutation!!!!'
-				a = np.random.random_integers(0, N_TASKS-1)
-				b = np.random.random_integers(0, N_TASKS-1)
-
-				tmp = pop_cross[i][a]
-				pop_cross[i][a] = pop_cross[i][b]
-				pop_cross[i][b] = tmp
+		pop_mut = mutacao(pop_cross)
 
 		# nova populacao
-		population = copy.copy(pop_cross)
+		population = copy.copy(pop_mut)
 
 		# para printar resultado parcial
-		f = []
-		for i in xrange(M):
-			f.append(fitness(population[i]))
-
-		f = np.array(f)
-		f.sort()
-
-		print 'End of generation ' + str(k) + '. Best fitness: ' + str(f[-1])
+		print_parcial(population, k)
 
 	# ordena resultados pelo fitness
 	bests = []
