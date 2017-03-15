@@ -115,11 +115,21 @@ def gera_populacao_hrhs():
 
 	pop.extend(half_pop)
 
+
+
+	pop_from_rules = []
+	pop_from_rules.append(greed_rule_1())
+	pop_from_rules.append(greed_rule_2())
+	pop_from_rules.append(greed_rule_3())
+	pop_from_rules.append(greed_rule_4())
+	pop_from_rules.append(greed_rule_5())
+	pop_from_rules.append(greed_rule_6())
+
 	total_fitness = 0.0
 
 	# Soma todas as avaliacoes para uma variavel soma
-	for i in range(n_half_pop):
-		total_fitness += fitness(half_pop[i])
+	for i in range(len(pop_from_rules)):
+		total_fitness += fitness(pop_from_rules[i])
 
 	# STEP 4
 	for i in xrange(M - n_half_pop):
@@ -133,16 +143,16 @@ def gera_populacao_hrhs():
 			# Selecione um numero s entre 0 e soma
 			s = random.uniform(0.0, total_fitness)
 			ind = 0
-			aux = fitness(half_pop[ind])
+			aux = fitness(pop_from_rules[ind])
 
 			while aux < s:
 				ind += 1
-				aux += fitness(half_pop[ind])
+				aux += fitness(pop_from_rules[ind])
 
 			# STEP 2
 			for ii in xrange(N_TASKS):
-				if half_pop[ind][ii] not in s_new:
-					s_new.append(half_pop[ind][ii])
+				if pop_from_rules[ind][ii] not in s_new:
+					s_new.append(pop_from_rules[ind][ii])
 					break
 
 			pop.append(s_new)
