@@ -1,6 +1,8 @@
 import sys, copy
 import numpy as np
+import random
 
+W = 10				# para uso na geracao de populacao inicial com estrategia FS
 M = 100				# tamanho da populacao
 T = 250				# periodo de tempo
 N_TASKS = 50		# numero de tarefas
@@ -56,12 +58,143 @@ def fitness(chro):
 
 	return result
 
+def greed_rule_1():
+	c = sorted(tasks, key=lambda x: x.tesi, reverse=False)
+	return c
+
+def greed_rule_2():
+	c = sorted(tasks, key=lambda x: x.ri, reverse=True)
+	return c
+
+def greed_rule_3():
+	c = sorted(tasks, key=lambda x: (x.ri / x.ti), reverse=True)
+	return c
+
+def greed_rule_4():
+	c = sorted(tasks, key=lambda x: x.ti, reverse=False)
+	return c
+
+def greed_rule_5():
+	c = sorted(tasks, key=lambda x: x.tvi, reverse=False)
+	return c
+
+def greed_rule_6():
+	c = sorted(tasks, key=lambda x: (x.tvi - x.ti), reverse=False)
+	return c
+
+def gera_populacao_fs():
+	pop = []
+	pop_tmp = []
+	bests = []
+
+	for i in xrange(W*M):
+		pop_tmp.append(np.random.permutation(N_TASKS))
+
+	for i in xrange(W*M):
+		bests.append((fitness(pop_tmp[i]), i))
+
+	dtype = [('fitness', float), ('index', int)]
+	bests = np.array(bests, dtype=dtype)
+	bests[::-1].sort(order='fitness')
+
+	for i in xrange(0, W*M, 3):
+		pop.append(pop_tmp[bests[i][1]])
+
+
+	return pop
+
+
+def gera_populacao_hrhs():
+	pop = []
+	half_pop = []
+
+	n_half_pop = M/2
+
+	for i in xrange(n_half_pop):
+		half_pop.append(np.random.permutation(N_TASKS))
+
+	pop.extend(half_pop)
+
+	total_fitness = 0.0
+
+	# Soma todas as avaliacoes para uma variavel soma
+	for i in range(n_half_pop):
+		total_fitness += fitness(half_pop[i])
+
+	# STEP 4
+	for i in xrange(M - n_half_pop):
+
+		s_new = []
+
+		# STEP 3
+		while len(s_new) < N_TASKS:
+
+			# STEP 1
+			# Selecione um numero s entre 0 e soma
+			s = random.uniform(0.0, total_fitness)
+			ind = 0
+			aux = fitness(half_pop[ind])
+
+			while aux < s:
+				ind += 1
+				aux += fitness(half_pop[ind])
+
+			# STEP 2
+			for ii in xrange(N_TASKS):
+				if half_pop[ind][ii] not in s_new:
+					s_new.append(half_pop[ind][ii])
+					break
+
+			pop.append(s_new)
+		
+	return pop
+
+
+def gera_populacao_aleatoria_sem_repeticao():
+	pop = []
+	all_fit = []
+	for i in xrange(M):
+		repeat = True
+		while repeat:
+			chromo = np.random.permutation(N_TASKS)
+			f = fitness(chromo)
+			if f not in all_fit:
+				pop.append(chromo)
+				all_fit.append(f)
+				repeat = False
+
+	return pop
+
 def gera_populacao_aleatoria():
 	pop = []
 	for i in xrange(M):
 		pop.append(np.random.permutation(N_TASKS))
 
 	return pop
+
+def selecao_roleta(population):
+	pop_sel = []
+	total_fitness = 0.0
+
+	# Soma todas as avaliacoes para uma variavel soma
+	for i in range(M):
+		total_fitness += fitness(population[i])
+
+	# Faco isso para toda uma populacao nova
+	for i in range(M):
+
+		# Selecione um numero s entre 0 e soma (nao inclusos)
+		s = random.uniform(0.0, total_fitness)
+		ind = 0
+		aux = fitness(population[ind])
+
+		while aux < s:
+			ind += 1
+			aux += fitness(population[ind])
+
+		pop_sel.append(population[ind])
+
+	return pop_sel
 
 def selecao_aleatoria(population):
 	pop_sel = []
@@ -171,13 +304,18 @@ def main(argv):
 	for i in xrange(N_TASKS):
 		tasks.append(Task(i, v_ti[i], v_tesi[i], v_tlsi[i], v_ri[i]))
 
+	greed_rule_1()
 	# inicializando populacao aleatoriamente
-	population = gera_populacao_aleatoria()	
+	# population = gera_populacao_aleatoria()
+	# population = gera_populacao_hrhs()
+	population = gera_populacao_fs()
 
 	# inicio do genetico
 	for k in xrange(GEN):
 		# selecao de individuos
-		pop_sel = selecao_aleatoria(population)
+		# pop_sel = selecao_aleatoria(population)
+		pop_sel = selecao_roleta(population)
+
 
 		# crossover
 		pop_cross = crossover_same_sit(pop_sel)
