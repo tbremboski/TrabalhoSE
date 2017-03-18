@@ -225,6 +225,47 @@ def selecao_aleatoria(population):
 
 	return pop_sel
 
+#by Ulisses
+
+def crossover_go_away(population):
+	pop_cross = crossover_same_sit(population)
+	for task in xrange(0,M,3):
+		ind = pop_cross[task]
+		pop_cross[task] = ind[::-1]
+	return pop_cross
+
+def crossover_random_walk(population,generation):
+	from math import floor
+	import copy as cp
+	pop_cross = crossover_same_sit(population)
+	alpha = int(floor(0.3*(M/(generation+1))))
+	crazy_walkers = random.sample(xrange(M), alpha)
+	for task in crazy_walkers:
+		ind = pop_cross[task]
+		pop_cross[task] = ind[::-1]
+	crazy_swipe = random.sample(xrange(M), alpha)
+	for task in crazy_swipe:
+		ind = cp.deepcopy(pop_cross[task])
+		swipe_pos = random.sample(xrange(N_TASKS), 2)
+		aux = ind[swipe_pos[0]] 
+		ind[swipe_pos[0]] = ind[swipe_pos[1]]
+		ind[swipe_pos[1]] = aux
+		pop_cross[task] = ind
+	return pop_cross
+
+def crossover_reverse_worst(population):
+	pop_cross = crossover_random_walk(population)
+
+	fits = []
+	for i,task in enumerate(pop_cross):
+		fit = fitness(task)
+		fits.append([i,fit])
+	sorted_fits = sorted(fits, key = lambda x: int(x[1]),reverse=True)
+	for worst in sorted_fits[0:10]:
+		ind = pop_cross[worst[0]] 
+		pop_cross[worst[0]] = ind[::-1]
+	return pop_cross
+
 def crossover_same_sit(population):
 	pop_cross = []
 	for i in xrange(0, M, 2):
@@ -258,10 +299,13 @@ def crossover_same_sit(population):
 						tmp.append(population[i+1][j])
 
 				c = 0
-				for j in xrange(N_TASKS):
-					if son[j] == -1:
-						son[j] = tmp[c]
-						c += 1
+				try:
+					for j in xrange(N_TASKS):
+						if son[j] == -1:
+							son[j] = tmp[c]
+							c += 1
+				except IndexError:
+					print "aquele erro nao parou ..."
 
 				sons.append(son)
 
@@ -325,7 +369,7 @@ def main(argv):
 	# population = gera_populacao_aleatoria()
 	population = gera_populacao_hrhs()
 	# population = gera_populacao_fs()
-
+	champions_history = []
 	# inicio do genetico
 	for k in xrange(GEN):
 		# selecao de individuos
@@ -334,8 +378,10 @@ def main(argv):
 
 
 		# crossover
-		pop_cross = crossover_same_sit(pop_sel)
-
+		#pop_cross = crossover_same_sit(pop_sel)
+		#pop_cross = crossover_go_away(pop_sel)
+		pop_cross = crossover_random_walk(pop_sel,k)
+		#pop_cross = crossover_reverse_worst(pop_sel)
 		# mutacao
 		pop_mut = mutacao(pop_cross)
 
@@ -344,7 +390,25 @@ def main(argv):
 
 		# para printar resultado parcial
 		print_parcial(population, k)
+		#se cair num plato obriga a mutar! 
+			# ordena resultados pelo fitness
+		bests = []
+		for i in xrange(M):
+			bests.append((fitness(population[i]), i))
 
+		dtype = [('fitness', float), ('index', int)]
+		bests = np.array(bests, dtype=dtype)
+		bests.sort(order='fitness')
+		champions_history.append(bests[-1][0])
+		try:
+			plato = (champions_history[-1]-champions_history[-2]) - (champions_history[-2]-champions_history[-3])
+		except Exception as e:
+			plato = 0
+		if plato > 1e-2:
+			print "plato!!! -> put a little spicy"
+			PM = 1
+		else:
+			PM = 0.0006
 	# ordena resultados pelo fitness
 	bests = []
 	for i in xrange(M):
@@ -358,6 +422,7 @@ def main(argv):
 	print 'Best fitness: ' + str(bests[-1][0])
 	print 'Best task order:'
 	print population[bests[-1][1]]
+
 
 class Task:
 	def __init__(self, label, ti, tesi, tlsi, ri):
