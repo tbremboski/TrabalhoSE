@@ -1,14 +1,14 @@
-import sys, copy
+import sys, copy, csv
 import numpy as np
 import random
 
 W = 10				# para uso na geracao de populacao inicial com estrategia FS
 M = 100				# tamanho da populacao
-T = 250				# periodo de tempo
+T = 300				# periodo de tempo
 N_TASKS = 50		# numero de tarefas
-GEN = 100			# numero de geracoes
+GEN = 50			# numero de geracoes
 PC = 0.8			# probabilidade de crossover
-PM = 0.0006			# probabilidade de mutacao
+PM = 0.006			# probabilidade de mutacao
 PC_LOOP = 10		# numero de filhos por crossover (escolhe 2 melhores)
 tasks = []			# lista de tarefas global
 
@@ -106,7 +106,6 @@ def gera_populacao_fs():
 	for i in xrange(0, W*M, 3):
 		pop.append(pop_tmp[bests[i][1]])
 
-
 	return pop
 
 
@@ -120,8 +119,6 @@ def gera_populacao_hrhs():
 		half_pop.append(np.random.permutation(N_TASKS))
 
 	pop.extend(half_pop)
-
-
 
 	pop_from_rules = []
 	pop_from_rules.append(greed_rule_1())
@@ -254,13 +251,13 @@ def crossover_random_walk(population,generation):
 	return pop_cross
 
 def crossover_reverse_worst(population):
-	pop_cross = crossover_random_walk(population)
+	pop_cross = crossover_same_sit(population)
 
 	fits = []
 	for i,task in enumerate(pop_cross):
 		fit = fitness(task)
 		fits.append([i,fit])
-	sorted_fits = sorted(fits, key = lambda x: int(x[1]),reverse=True)
+	sorted_fits = sorted(fits, key = lambda x: x[1],reverse=False)
 	for worst in sorted_fits[0:10]:
 		ind = pop_cross[worst[0]] 
 		pop_cross[worst[0]] = ind[::-1]
@@ -326,7 +323,7 @@ def crossover_same_sit(population):
 	return pop_cross
 
 def mutacao(population):
-	pop = population
+	pop = copy.copy(population)
 	for i in xrange(M):
 		r = np.random.random_sample()
 		if r < PM:
@@ -351,37 +348,78 @@ def print_parcial(population, k):
 	print 'End of generation ' + str(k) + '. Best fitness: ' + str(f[-1])
 
 def main(argv):
-	# inicializando valores de cada tarefa
-	v_tesi = np.random.uniform(0, T, N_TASKS)
-	v_tesi.sort()
-	v_ti = np.random.normal(6, 1, N_TASKS)
-	v_ti = np.absolute(v_ti)
-	v_tlsi = np.random.normal(5, 1, N_TASKS)
-	v_tlsi = np.absolute(v_tlsi)
-	v_ri = np.random.uniform(0, 1, N_TASKS)
+	n_iter = 0
+	ler_arquivo = False
+	if len(argv) > 0:
+		try:
+			n_iter = int(argv[0])
+		except ValueError:
+			ler_arquivo = True
+
+	if ler_arquivo:
+		v_ti = []
+		v_tesi = []
+		v_tlsi = []
+		v_ri = []
+		data = np.loadtxt(argv[0], delimiter=",")
+
+		for row in data:
+			v_ti.append(row[0])
+			v_tesi.append(row[1])
+			v_tlsi.append(row[2])
+			v_ri.append(row[3])
+
+	else:
+		# inicializando valores de cada tarefa
+		v_tesi = np.random.uniform(0, T, N_TASKS)
+		v_tesi.sort()
+		v_ti = np.random.normal(6, 1, N_TASKS)
+		v_ti = np.absolute(v_ti)
+		v_tlsi = np.random.normal(5, 1, N_TASKS)
+		v_tlsi = np.absolute(v_tlsi)
+		v_ri = np.random.uniform(0, 1, N_TASKS)
+
+	SAVE = False			# para gerar arquivo
+	if SAVE:
+		rows = []
+		for i in range(N_TASKS):
+			row = []
+			row.append(v_ti[i])
+			row.append(v_tesi[i])
+			row.append(v_tlsi[i])
+			row.append(v_ri[i])
+			rows.append(row)
+		f_name = 'test_' + str(N_TASKS) + '_' + str(n_iter) + '.csv'
+		with open(f_name, 'wb') as csvfile:
+			spamwriter = csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_MINIMAL)
+			spamwriter.writerows(rows)
+
+		sys.exit(0)
 
 	# criando lista de tarefas
 	for i in xrange(N_TASKS):
 		tasks.append(Task(i, v_ti[i], v_tesi[i], v_tlsi[i], v_ri[i]))
 
-	greed_rule_1()
 	# inicializando populacao aleatoriamente
-	# population = gera_populacao_aleatoria()
-	population = gera_populacao_hrhs()
+	population = gera_populacao_aleatoria()
+	# population = gera_populacao_aleatoria_sem_repeticao()
+	# population = gera_populacao_hrhs()
 	# population = gera_populacao_fs()
-	champions_history = []
+
+	# champions_history = []
+
 	# inicio do genetico
 	for k in xrange(GEN):
 		# selecao de individuos
-		# pop_sel = selecao_aleatoria(population)
-		pop_sel = selecao_roleta(population)
-
+		pop_sel = selecao_aleatoria(population)
+		# pop_sel = selecao_roleta(population)
 
 		# crossover
-		#pop_cross = crossover_same_sit(pop_sel)
-		#pop_cross = crossover_go_away(pop_sel)
-		pop_cross = crossover_random_walk(pop_sel,k)
-		#pop_cross = crossover_reverse_worst(pop_sel)
+		pop_cross = crossover_same_sit(pop_sel)
+		# pop_cross = crossover_go_away(pop_sel)
+		# pop_cross = crossover_random_walk(pop_sel,k)
+		# pop_cross = crossover_reverse_worst(pop_sel)
+
 		# mutacao
 		pop_mut = mutacao(pop_cross)
 
@@ -390,25 +428,27 @@ def main(argv):
 
 		# para printar resultado parcial
 		print_parcial(population, k)
-		#se cair num plato obriga a mutar! 
-			# ordena resultados pelo fitness
-		bests = []
-		for i in xrange(M):
-			bests.append((fitness(population[i]), i))
 
-		dtype = [('fitness', float), ('index', int)]
-		bests = np.array(bests, dtype=dtype)
-		bests.sort(order='fitness')
-		champions_history.append(bests[-1][0])
-		try:
-			plato = (champions_history[-1]-champions_history[-2]) - (champions_history[-2]-champions_history[-3])
-		except Exception as e:
-			plato = 0
-		if plato > 1e-2:
-			print "plato!!! -> put a little spicy"
-			PM = 1
-		else:
-			PM = 0.0006
+		#se cair num plato obriga a mutar! 
+		# ordena resultados pelo fitness
+		# bests = []
+		# for i in xrange(M):
+		# 	bests.append((fitness(population[i]), i))
+
+		# dtype = [('fitness', float), ('index', int)]
+		# bests = np.array(bests, dtype=dtype)
+		# bests.sort(order='fitness')
+		# champions_history.append(bests[-1][0])
+		# try:
+		# 	plato = (champions_history[-1]-champions_history[-2]) - (champions_history[-2]-champions_history[-3])
+		# except Exception as e:
+		# 	plato = 0
+		# if plato > 1e-2:
+		# 	print "plato!!! -> put a little spicy"
+		# 	PM = 1
+		# else:
+		# 	PM = 0.006
+
 	# ordena resultados pelo fitness
 	bests = []
 	for i in xrange(M):
