@@ -5,7 +5,7 @@ import random
 W = 10				# para uso na geracao de populacao inicial com estrategia FS
 M = 100				# tamanho da populacao
 T = 300				# periodo de tempo
-N_TASKS = 10		# numero de tarefas
+N_TASKS = 90		# numero de tarefas
 GEN = 50			# numero de geracoes
 PC = 0.8			# probabilidade de crossover
 PM = 0.006			# probabilidade de mutacao
@@ -405,17 +405,17 @@ def main(argv):
 
 	# inicializando populacao aleatoriamente
 	# population = gera_populacao_aleatoria()
-	# population = gera_populacao_aleatoria_sem_repeticao()
+	population = gera_populacao_aleatoria_sem_repeticao()
 	# population = gera_populacao_hrhs()
-	population = gera_populacao_fs()
+	# population = gera_populacao_fs()
 
 	# champions_history = []
 
 	# inicio do genetico
 	for k in xrange(GEN):
 		# selecao de individuos
-		pop_sel = selecao_aleatoria(population)
-		# pop_sel = selecao_roleta(population)
+		# pop_sel = selecao_aleatoria(population)
+		pop_sel = selecao_roleta(population)
 
 		# crossover
 		pop_cross = crossover_same_sit(pop_sel)
