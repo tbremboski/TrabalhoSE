@@ -5,7 +5,7 @@ import random
 W = 10				# para uso na geracao de populacao inicial com estrategia FS
 M = 100				# tamanho da populacao
 T = 300				# periodo de tempo
-N_TASKS = 50		# numero de tarefas
+N_TASKS = 10		# numero de tarefas
 GEN = 50			# numero de geracoes
 PC = 0.8			# probabilidade de crossover
 PM = 0.006			# probabilidade de mutacao
@@ -20,7 +20,7 @@ def fitness(chro):
 	last_i = -1
 	result = 0.0
 	tasks_local = copy.copy(tasks)
-	
+
 	for i in xrange(len(chro)):
 		task = tasks_local[chro[i]]
 		constr1 = False
@@ -161,7 +161,7 @@ def gera_populacao_hrhs():
 					break
 
 			pop.append(s_new)
-		
+
 	return pop
 
 
@@ -246,7 +246,7 @@ def crossover_random_walk(population,generation):
 	for task in crazy_swipe:
 		ind = cp.deepcopy(pop_cross[task])
 		swipe_pos = random.sample(xrange(N_TASKS), 2)
-		aux = ind[swipe_pos[0]] 
+		aux = ind[swipe_pos[0]]
 		ind[swipe_pos[0]] = ind[swipe_pos[1]]
 		ind[swipe_pos[1]] = aux
 		pop_cross[task] = ind
@@ -261,7 +261,7 @@ def crossover_reverse_worst(population):
 		fits.append([i,fit])
 	sorted_fits = sorted(fits, key = lambda x: x[1],reverse=False)
 	for worst in sorted_fits[0:10]:
-		ind = pop_cross[worst[0]] 
+		ind = pop_cross[worst[0]]
 		pop_cross[worst[0]] = ind[::-1]
 	return pop_cross
 
@@ -432,7 +432,7 @@ def main(argv):
 		# para printar resultado parcial
 		# print_parcial(population, k)
 
-		#se cair num plato obriga a mutar! 
+		#se cair num plato obriga a mutar!
 		# ordena resultados pelo fitness
 		# bests = []
 		# for i in xrange(M):
