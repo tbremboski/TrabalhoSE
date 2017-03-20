@@ -14,6 +14,7 @@ tasks = []			# lista de tarefas global
 
 def fitness(chro):
 	# funcao de fitness, conforme o artigo
+	num_task = 0
 	xi = np.zeros(N_TASKS, dtype=np.int)
 	current_time = 0.0
 	last_i = -1
@@ -52,11 +53,12 @@ def fitness(chro):
 		if constr1 and constr2 and constr3:
 			xi[chro[i]] = 1
 			last_i = chro[i]
+			num_task += 1
 
 	for i in xrange(len(chro)):
 		result += xi[chro[i]] * tasks_local[chro[i]].ri
 
-	return result
+	return result, num_task
 
 def greed_rule_1():
 	c = sorted(tasks, key=lambda x: x.tesi, reverse=False)
@@ -97,7 +99,7 @@ def gera_populacao_fs():
 		pop_tmp.append(np.random.permutation(N_TASKS))
 
 	for i in xrange(W*M):
-		bests.append((fitness(pop_tmp[i]), i))
+		bests.append((fitness(pop_tmp[i])[0], i))
 
 	dtype = [('fitness', float), ('index', int)]
 	bests = np.array(bests, dtype=dtype)
@@ -132,7 +134,7 @@ def gera_populacao_hrhs():
 
 	# Soma todas as avaliacoes para uma variavel soma
 	for i in range(len(pop_from_rules)):
-		total_fitness += fitness(pop_from_rules[i])
+		total_fitness += fitness(pop_from_rules[i])[0]
 
 	# STEP 4
 	for i in xrange(M - n_half_pop):
@@ -146,11 +148,11 @@ def gera_populacao_hrhs():
 			# Selecione um numero s entre 0 e soma
 			s = random.uniform(0.0, total_fitness)
 			ind = 0
-			aux = fitness(pop_from_rules[ind])
+			aux = fitness(pop_from_rules[ind])[0]
 
 			while aux < s:
 				ind += 1
-				aux += fitness(pop_from_rules[ind])
+				aux += fitness(pop_from_rules[ind])[0]
 
 			# STEP 2
 			for ii in xrange(N_TASKS):
@@ -170,7 +172,7 @@ def gera_populacao_aleatoria_sem_repeticao():
 		repeat = True
 		while repeat:
 			chromo = np.random.permutation(N_TASKS)
-			f = fitness(chromo)
+			f = fitness(chromo)[0]
 			if f not in all_fit:
 				pop.append(chromo)
 				all_fit.append(f)
@@ -191,7 +193,7 @@ def selecao_roleta(population):
 
 	# Soma todas as avaliacoes para uma variavel soma
 	for i in range(M):
-		total_fitness += fitness(population[i])
+		total_fitness += fitness(population[i])[0]
 
 	# Faco isso para toda uma populacao nova
 	for i in range(M):
@@ -199,11 +201,11 @@ def selecao_roleta(population):
 		# Selecione um numero s entre 0 e soma (nao inclusos)
 		s = random.uniform(0.0, total_fitness)
 		ind = 0
-		aux = fitness(population[ind])
+		aux = fitness(population[ind])[0]
 
 		while aux < s:
 			ind += 1
-			aux += fitness(population[ind])
+			aux += fitness(population[ind])[0]
 
 		pop_sel.append(population[ind])
 
@@ -215,7 +217,7 @@ def selecao_aleatoria(population):
 		a = np.random.random_integers(0, M-1)
 		b = np.random.random_integers(0, M-1)
 
-		if fitness(population[a]) >= fitness(population[b]):
+		if fitness(population[a])[0] >= fitness(population[b])[0]:
 			pop_sel.append(population[a])
 		else:
 			pop_sel.append(population[b])
@@ -255,7 +257,7 @@ def crossover_reverse_worst(population):
 
 	fits = []
 	for i,task in enumerate(pop_cross):
-		fit = fitness(task)
+		fit = fitness(task)[0]
 		fits.append([i,fit])
 	sorted_fits = sorted(fits, key = lambda x: x[1],reverse=False)
 	for worst in sorted_fits[0:10]:
@@ -308,7 +310,7 @@ def crossover_same_sit(population):
 
 			t = []
 			for j in range(len(sons)):
-				t.append((fitness(sons[j]), j))
+				t.append((fitness(sons[j])[0], j))
 
 			dtype = [('fitness', float), ('index', int)]
 			t = np.array(t, dtype=dtype)
@@ -327,7 +329,7 @@ def mutacao(population):
 	for i in xrange(M):
 		r = np.random.random_sample()
 		if r < PM:
-			print 'Mutation!!!!'
+			# print 'Mutation!!!!'
 			a = np.random.random_integers(0, N_TASKS-1)
 			b = np.random.random_integers(0, N_TASKS-1)
 
@@ -340,7 +342,7 @@ def mutacao(population):
 def print_parcial(population, k):
 	f = []
 	for i in xrange(M):
-		f.append(fitness(population[i]))
+		f.append(fitness(population[i])[0])
 
 	f = np.array(f)
 	f.sort()
@@ -350,9 +352,11 @@ def print_parcial(population, k):
 def main(argv):
 	n_iter = 0
 	ler_arquivo = False
+	save = False
 	if len(argv) > 0:
 		try:
 			n_iter = int(argv[0])
+			save = True
 		except ValueError:
 			ler_arquivo = True
 
@@ -379,8 +383,7 @@ def main(argv):
 		v_tlsi = np.absolute(v_tlsi)
 		v_ri = np.random.uniform(0, 1, N_TASKS)
 
-	SAVE = False			# para gerar arquivo
-	if SAVE:
+	if save:
 		rows = []
 		for i in range(N_TASKS):
 			row = []
@@ -401,10 +404,10 @@ def main(argv):
 		tasks.append(Task(i, v_ti[i], v_tesi[i], v_tlsi[i], v_ri[i]))
 
 	# inicializando populacao aleatoriamente
-	population = gera_populacao_aleatoria()
+	# population = gera_populacao_aleatoria()
 	# population = gera_populacao_aleatoria_sem_repeticao()
 	# population = gera_populacao_hrhs()
-	# population = gera_populacao_fs()
+	population = gera_populacao_fs()
 
 	# champions_history = []
 
@@ -427,7 +430,7 @@ def main(argv):
 		population = copy.copy(pop_mut)
 
 		# para printar resultado parcial
-		print_parcial(population, k)
+		# print_parcial(population, k)
 
 		#se cair num plato obriga a mutar! 
 		# ordena resultados pelo fitness
@@ -452,16 +455,19 @@ def main(argv):
 	# ordena resultados pelo fitness
 	bests = []
 	for i in xrange(M):
-		bests.append((fitness(population[i]), i))
+		fit, nt = fitness(population[i])
+		bests.append((fit, i, nt))
 
-	dtype = [('fitness', float), ('index', int)]
+	dtype = [('fitness', float), ('index', int), ('nt', int)]
 	bests = np.array(bests, dtype=dtype)
 	bests.sort(order='fitness')
 
 	# melhor resultado
-	print 'Best fitness: ' + str(bests[-1][0])
-	print 'Best task order:'
-	print population[bests[-1][1]]
+	# print 'Best fitness: ' + str(bests[-1][0])
+	# print 'Best task order:'
+	# print population[bests[-1][1]]
+
+	print str(bests[-1][0]) + ' ' + str(bests[-1][2])
 
 
 class Task:
