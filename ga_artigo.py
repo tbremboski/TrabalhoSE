@@ -1,15 +1,18 @@
 import sys, copy, csv
 import numpy as np
 import random
+import math
 
+B = 0.1				# taxa melhores
 W = 10				# para uso na geracao de populacao inicial com estrategia FS
 M = 100				# tamanho da populacao
-T = 300				# periodo de tempo
-N_TASKS = 90		# numero de tarefas
+N_TASKS = 10		# numero de tarefas
 GEN = 50			# numero de geracoes
 PC = 0.8			# probabilidade de crossover
-PM = 0.006			# probabilidade de mutacao
+PM = 0.2			# probabilidade de mutacao
 PC_LOOP = 10		# numero de filhos por crossover (escolhe 2 melhores)
+# T = math.pow(math.log(math.pow(N_TASKS,6.0), math.e),2)+400	# periodo de tempo
+T = N_TASKS * 6.0 * (10 - (N_TASKS / 10))	# periodo de tempo
 tasks = []			# lista de tarefas global
 
 def fitness(chro):
@@ -188,15 +191,17 @@ def gera_populacao_aleatoria():
 	return pop
 
 def selecao_roleta(population):
+	pop = []
 	pop_sel = []
 	total_fitness = 0.0
 
 	# Soma todas as avaliacoes para uma variavel soma
 	for i in range(M):
 		total_fitness += fitness(population[i])[0]
+		pop.append((fitness(population[i])[0], i))
 
 	# Faco isso para toda uma populacao nova
-	for i in range(M):
+	for i in range(M - int(M*B)):
 
 		# Selecione um numero s entre 0 e soma (nao inclusos)
 		s = random.uniform(0.0, total_fitness)
@@ -209,11 +214,30 @@ def selecao_roleta(population):
 
 		pop_sel.append(population[ind])
 
-	return pop_sel
+	dtype = [('fitness', float), ('index', int)]
+	pop = np.array(pop, dtype=dtype)
+	pop.sort(order='fitness')
+
+	last = int(M*B)
+	last *= -1
+	c = pop[last:]
+
+	pop_pass = []
+	for e in c:
+		# print 'e: ' + str(e[1])
+		pop_sel.append(population[e[1]])
+		pop_pass.append(population[e[1]])
+
+	return (pop_sel, pop_pass)
 
 def selecao_aleatoria(population):
+	pop = []
 	pop_sel = []
-	for i in xrange(M):
+
+	for i in range(M):
+		pop.append((fitness(population[i])[0], i))
+
+	for i in xrange(M - int(M*B)):
 		a = np.random.random_integers(0, M-1)
 		b = np.random.random_integers(0, M-1)
 
@@ -222,7 +246,21 @@ def selecao_aleatoria(population):
 		else:
 			pop_sel.append(population[b])
 
-	return pop_sel
+	dtype = [('fitness', float), ('index', int)]
+	pop = np.array(pop, dtype=dtype)
+	pop.sort(order='fitness')
+
+	last = int(M*B)
+	last *= -1
+	c = pop[last:]
+
+	pop_pass = []
+	for e in c:
+		# print 'e: ' + str(e[1])
+		pop_sel.append(population[e[1]])
+		pop_pass.append(population[e[1]])
+
+	return (pop_sel, pop_pass)
 
 #by Ulisses
 
@@ -405,8 +443,8 @@ def main(argv):
 
 	# inicializando populacao aleatoriamente
 	# population = gera_populacao_aleatoria()
-	population = gera_populacao_aleatoria_sem_repeticao()
-	# population = gera_populacao_hrhs()
+	# population = gera_populacao_aleatoria_sem_repeticao()
+	population = gera_populacao_hrhs()
 	# population = gera_populacao_fs()
 
 	# champions_history = []
@@ -414,23 +452,27 @@ def main(argv):
 	# inicio do genetico
 	for k in xrange(GEN):
 		# selecao de individuos
-		# pop_sel = selecao_aleatoria(population)
-		pop_sel = selecao_roleta(population)
+		# pop_sel, pop_pass = selecao_aleatoria(population)
+		pop_sel, pop_pass = selecao_roleta(population)
 
 		# crossover
-		pop_cross = crossover_same_sit(pop_sel)
+		# pop_cross = crossover_same_sit(pop_sel)
 		# pop_cross = crossover_go_away(pop_sel)
-		# pop_cross = crossover_random_walk(pop_sel,k)
+		pop_cross = crossover_random_walk(pop_sel,k)
 		# pop_cross = crossover_reverse_worst(pop_sel)
 
 		# mutacao
 		pop_mut = mutacao(pop_cross)
 
+		for i in range(len(pop_pass)):
+			r = np.random.random_integers(0, M-1)
+			pop_mut[r] = pop_pass[i]
+
 		# nova populacao
 		population = copy.copy(pop_mut)
 
 		# para printar resultado parcial
-		# print_parcial(population, k)
+		print_parcial(population, k)
 
 		#se cair num plato obriga a mutar!
 		# ordena resultados pelo fitness
