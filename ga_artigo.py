@@ -6,15 +6,14 @@ import math
 B = 0.1				# taxa melhores
 W = 10				# para uso na geracao de populacao inicial com estrategia FS
 M = 100				# tamanho da populacao
-N_TASKS = 90		# numero de tarefas
+N_TASKS = 10		# numero de tarefas
 GEN = 50			# numero de geracoes
 PC = 0.8			# probabilidade de crossover
 PM = 0.006			# probabilidade de mutacao
-PC_LOOP = 10		# numero de filhos por crossover (escolhe 2 melhores)
+PC_LOOP = 30		# numero de filhos por crossover (escolhe 2 melhores)
 # T = math.pow(math.log(math.pow(N_TASKS,6.0), math.e),2)+400	# periodo de tempo
 # T = N_TASKS * 6.0 * (10 - (N_TASKS / 10))	# periodo de tempo
-# T = int((math.log(math.pow(N_TASKS, 6.0), math.e)) * 50)
-T = 300
+# T = 1000
 tasks = []			# lista de tarefas global
 
 def fitness(chro):
@@ -397,6 +396,7 @@ def print_parcial(population, k):
 
 def main(argv):
 	global N_TASKS
+	global T
 	n_iter = 0
 	ler_arquivo = False
 	save = False
@@ -409,6 +409,7 @@ def main(argv):
 
 	if len(argv) > 1:
 		N_TASKS = int(argv[1])
+		T = int((math.log(math.pow(N_TASKS, 6.0), math.e)) * 50)
 
 	if ler_arquivo:
 		v_ti = []
@@ -442,7 +443,7 @@ def main(argv):
 			row.append(v_tlsi[i])
 			row.append(v_ri[i])
 			rows.append(row)
-		f_name = 'test-' + str(N_TASKS) + '-' + str(n_iter) + '-new.csv'
+		f_name = 'test-' + str(N_TASKS) + '-' + str(n_iter) + '-adaptativo-new.csv'
 		with open(f_name, 'wb') as csvfile:
 			spamwriter = csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_MINIMAL)
 			spamwriter.writerows(rows)
@@ -454,9 +455,9 @@ def main(argv):
 		tasks.append(Task(i, v_ti[i], v_tesi[i], v_tlsi[i], v_ri[i]))
 
 	# inicializando populacao aleatoriamente
-	population = gera_populacao_aleatoria()
+	# population = gera_populacao_aleatoria()
 	# population = gera_populacao_aleatoria_sem_repeticao()
-	# population = gera_populacao_hrhs()
+	population = gera_populacao_hrhs()
 	# population = gera_populacao_fs()
 
 	# champions_history = []
@@ -484,7 +485,7 @@ def main(argv):
 		population = copy.copy(pop_mut)
 
 		# para printar resultado parcial
-		print_parcial(population, k)
+		# print_parcial(population, k)
 
 		#se cair num plato obriga a mutar!
 		# ordena resultados pelo fitness
